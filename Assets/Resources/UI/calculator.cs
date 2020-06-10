@@ -134,7 +134,7 @@ public class calculator : MonoBehaviour
 
     string calculate(List<string> list)
     {
-        //fix brackets
+        //fix brackets pls
         //do calculations in list - brackets, indices, division, multiplication, addition, subtraction
         //brackets
         for (int i = 0; i < list.Count; i++)
