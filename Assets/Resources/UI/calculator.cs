@@ -12,12 +12,15 @@ public class calculator : MonoBehaviour
     private TMP_Text messages;
     //input field
     private TMP_InputField calculatorText;
-    //calculations
+    //cleanup
     private List<string> first = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "-", "(" };
+    private List<char> noAdjacent = new List<char> { '^', '*', '+', '/' };
+    private bool removeLast;
+    //calculations
     private List<string> numbers = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "." };
     private List<string> calculations = new List<string> { "+", "-", "*", "/", "//", "^", "sqrt", "(", ")", "tan", "cos", "sin" };
     private List<string> brackets = new List<string> {};
-    private string bracket;
+    private int openBrackets;
     private List<string> calcNums = new List<string> {""};
     private int calcNumCount;
     private List<string> originalResult = new List<string> { "" };
@@ -66,14 +69,17 @@ public class calculator : MonoBehaviour
 
     public void cleanup(string text)
     {
-        if(calculatorText.text.Length == 1)
+        //real time input cleaning
+        //first character restrictions
+        if (calculatorText.text.Length == 1)
         {
-            //first character restrictions
+            //first character must be in 'first' list
             if(!first.Contains(calculatorText.text[0].ToString()))
             {
                 calculatorText.text = calculatorText.text.Remove(0);
             }
         }
+        //other
         if (calculatorText.text.Length > 0)
         {
             //space removal
@@ -111,6 +117,27 @@ public class calculator : MonoBehaviour
                     }
                 }
             }
+
+            //remove adjacent calculation operators
+            removeLast = false;
+            if (noAdjacent.Contains(calculatorText.text[calculatorText.text.Length - 1]))
+            {
+                if (noAdjacent.Contains(calculatorText.text[calculatorText.text.Length - 2]))
+                {
+                    //if last two characters are noAdjacent characters, remove recent character
+                    removeLast = true;
+                }
+                if (calculatorText.text[calculatorText.text.Length - 1] == '/' && calculatorText.text[calculatorText.text.Length - 2] == '/' && calculatorText.text[calculatorText.text.Length - 3] != '/')
+                {
+                    //if last two characters ae both divide and character before them is not divide, do not remove character; two divides = modulo
+                    removeLast = false;
+                }
+                //remove
+                if (removeLast)
+                {
+                    calculatorText.text = calculatorText.text.Remove(calculatorText.text.Length - 1);
+                }
+            }
         }
     }
 
@@ -126,209 +153,26 @@ public class calculator : MonoBehaviour
             calcNums = makeList(calculatorText.text, 0, calculatorText.text.Length);
 
             //part 2: execute:
-            printList(calcNums);
             result = calculate(calcNums);
             Debug.Log("result: " + result);
         }
     }
 
-    string calculate(List<string> list)
-    {
-        //fix brackets pls
-        //do calculations in list - brackets, indices, division, multiplication, addition, subtraction
-        //brackets
-        for (int i = 0; i < list.Count; i++)
-        {
-            if (list[i] == "(")
-            {
-                //removes opening bracket
-                list.RemoveAt(i);
-                //finds closing bracket
-                for (int j = i; j < list.Count; j++)
-                {
-                    if (list[j] == ")")
-                    {
-                        //removes closing bracket
-                        list.RemoveAt(j);
-                        //gathers contents into new list while removing
-                        brackets = new List<string> { };
-                        for (int k = 0; k < j - i; k++)
-                        {
-                            brackets.Add(list[i]);
-                            list.RemoveAt(i);
-                        }
-                        //calculate contents and put into list
-                        list.Insert(i, calculate(brackets));
-                    }
-                }
-            }
-        }
-
-        //indices
-        for (int i = 0; i < list.Count; i++)
-        {
-            if (list[i] == "^")
-            {
-                if (i != 0 && i != list.Count - 1)
-                {
-                    if (betweenNumbers(list, i))
-                    {
-                        //removes two entries and replaces last with sum
-                        list[i] = Mathf.Pow(float.Parse(list[i - 1]), float.Parse(list[i + 1])).ToString();
-                        list.RemoveAt(i - 1);
-                        list.RemoveAt(i);
-                        i -= 1;
-                    }
-                    else
-                    {
-                        messages.text = "Syntax Error";
-                    }
-                }
-                else
-                {
-                    messages.text = "Syntax Error";
-                }
-            }
-        }
-
-        //division
-        for (int i = 0; i < list.Count; i++)
-        {
-            if (list[i] == "/")
-            {
-                if (i != 0 && i != list.Count - 1)
-                {
-                    if (betweenNumbers(list, i))
-                    {
-                        //removes two entries and replaces last with sum
-                        list[i] = (float.Parse(list[i - 1]) / float.Parse(list[i + 1])).ToString();
-                        list.RemoveAt(i - 1);
-                        list.RemoveAt(i);
-                        i -= 1;
-                    }
-                    else
-                    {
-                        messages.text = "Syntax Error";
-                    }
-                }
-                else
-                {
-                    messages.text = "Syntax Error";
-                }
-            }
-        }
-
-        //multiplication
-        for (int i = 0; i < list.Count; i++)
-        {
-            if (list[i] == "*")
-            {
-                if (i != 0 && i != list.Count - 1)
-                {
-                    if (betweenNumbers(list, i))
-                    {
-                        //removes two entries and replaces last with sum
-                        list[i] = (float.Parse(list[i - 1]) * float.Parse(list[i + 1])).ToString();
-                        list.RemoveAt(i - 1);
-                        list.RemoveAt(i);
-                        i -= 1;
-                    }
-                    else
-                    {
-                        messages.text = "Syntax Error";
-                    }
-                }
-                else
-                {
-                    messages.text = "Syntax Error";
-                }
-            }
-        }
-
-        //addition
-        for (int i = 0; i < list.Count; i++)
-        {
-            if (list[i] == "+")
-            {
-                if (i != 0 && i != list.Count - 1)
-                {
-                    if (betweenNumbers(list, i))
-                    {
-                        //removes two entries and replaces last with sum
-                        list[i] = (float.Parse(list[i - 1]) + float.Parse(list[i + 1])).ToString();
-                        list.RemoveAt(i - 1);
-                        list.RemoveAt(i);
-                        i -= 1;
-                    }
-                    else
-                    {
-                        messages.text = "Syntax Error";
-                    }
-                }
-                else
-                {
-                    messages.text = "Syntax Error";
-                }
-            }
-        }
-
-        //subtraction
-        for (int i = 0; i < list.Count; i++)
-        {
-            if (list[i] == "-")
-            {
-                if (i != 0 && i != list.Count - 1)
-                {
-                    if (betweenNumbers(list, i))
-                    {
-                        //removes two entries and replaces last with sum
-                        list[i] = (float.Parse(list[i - 1]) - float.Parse(list[i + 1])).ToString();
-                        list.RemoveAt(i - 1);
-                        list.RemoveAt(i);
-                        i -= 1;
-                    }
-                    else
-                    {
-                        messages.text = "Syntax Error";
-                    }
-                }
-                else
-                {
-                    messages.text = "Syntax Error";
-                }
-            }
-        }
-
-        //create result
-        result = "";
-        for (int i = 0; i < list.Count; i++)
-        {
-            result += list[i];
-        }
-
-        return result;
-    }
-
-    void printList(List<string> list)
-    {
-        for(int i = 0; i < list.Count; i++)
-        {
-            Debug.Log(list[i]);
-        }
-    }
-
     List<string> makeList(string text, int start, int end)
     {
-        int count = 0;
+        //turn text into list of characters
         List<char> list = new List<char> { };
         list.AddRange(text);
+        //create new list to collect contents of text correctly
+        int count = 0;
         List<string> newList = new List<string> { "" };
 
+        //search through text
         for (int i = start; i < end; i++)
         {
+            //if character is number:
             if (numbers.Contains((list[i]).ToString()))
             {
-                //if character is number:
                 if (i > start + 1)
                 {
                     if (numbers.Contains(list[i - 1].ToString()) || (list[i - 1] == '-' && calculations.Contains(list[i - 2].ToString())))
@@ -365,15 +209,164 @@ public class calculator : MonoBehaviour
                 }
             }
 
+            //if character is calculation operator:
             if (calculations.Contains(list[i].ToString()))
             {
-                //if character is calculation operator, add to new entry
-                newList.Add((list[i].ToString()));
-                count += 1;
+                if(list[i] == '/' && list[i - 1] == '/')
+                {
+                    //if charcter is divide and previous character was also divide, add divide to last entry to form modulus
+                    newList[count] += list[i];
+                }
+                else
+                {
+                    //if not, add character to new entry
+                    newList.Add((list[i].ToString()));
+                    count += 1;
+                }
             }
         }
 
         return newList;
+    }
+
+    string calculate(List<string> list)
+    {
+        //fix bracketception
+        //do calculations in list - brackets, indices, division, multiplication, addition, subtraction
+        //brackets
+        for (int i = 0; i < list.Count; i++)
+        {
+            //create new list for bracket contents
+            brackets = new List<string> { };
+            openBrackets = 1;
+            if (list[i] == "(")
+            {
+                list.RemoveAt(i);
+                //find closing bracket, removing and adding bracket contents to bracket list
+                while(openBrackets > 0)
+                {
+                    if (list[i] == ")")
+                    {
+                        openBrackets -= 1;
+                        list.RemoveAt(i);
+                    }
+                    else if(list[i] == "(")
+                    {
+                        openBrackets += 1;
+                    }
+                    else
+                    {
+                        brackets.Add(list[i]);
+                        list.RemoveAt(i);
+                    }
+                }
+
+                printList(brackets);
+
+                //calculate contents and put into list
+                list.Insert(i, calculate(brackets));
+            }
+        }
+
+        int j;
+
+        //indices
+        j = doCalculation("^");
+        if (j != -1)
+        {
+            //removes two entries and replaces last with product
+            list[j] = Mathf.Pow(float.Parse(list[j - 1]), float.Parse(list[j + 1])).ToString();
+            list.RemoveAt(j - 1);
+            list.RemoveAt(j);
+            j -= 1;
+        }
+
+        //modulo
+        j = doCalculation("//");
+        if(j != -1)
+        {
+            //removes two entries and replaces last modulus
+            list[j] = (float.Parse(list[j - 1]) % float.Parse(list[j + 1])).ToString();
+            list.RemoveAt(j - 1);
+            list.RemoveAt(j);
+            j -= 1;
+        }
+
+        //division
+        j = doCalculation("/");
+        if(j != -1)
+        {
+            //removes two entries and replaces last with product
+            list[j] = (float.Parse(list[j - 1]) / float.Parse(list[j + 1])).ToString();
+            list.RemoveAt(j - 1);
+            list.RemoveAt(j);
+            j -= 1;
+        }
+
+        //multiplication
+        j = doCalculation("*");
+        if (j != -1)
+        {
+            //removes two entries and replaces last with product
+            list[j] = (float.Parse(list[j - 1]) * float.Parse(list[j + 1])).ToString();
+            list.RemoveAt(j - 1);
+            list.RemoveAt(j);
+            j -= 1;
+        }
+
+        //addition
+        j = doCalculation("+");
+        if (j != -1)
+        {
+            //removes two entries and replaces last with sum
+            list[j] = (float.Parse(list[j - 1]) + float.Parse(list[j + 1])).ToString();
+            list.RemoveAt(j - 1);
+            list.RemoveAt(j);
+            j -= 1;
+        }
+
+        //subtraction
+        j = doCalculation("-");
+        if (j != -1)
+        {
+            //removes two entries and replaces last with sum
+            list[j] = (float.Parse(list[j - 1]) - float.Parse(list[j + 1])).ToString();
+            list.RemoveAt(j - 1);
+            list.RemoveAt(j);
+            j -= 1;
+        }
+
+        int doCalculation(string calculation)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == calculation)
+                {
+                    if (i != 0 && i != list.Count - 1)
+                    {
+                        if (betweenNumbers(list, i))
+                        {
+                            return i;
+                        }
+                    }
+                }
+            }
+
+            return -1;
+            messages.text = "Syntax Error";
+        }
+
+        //create result
+        result = "";
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (!(list[i].Contains("(") || list[i].Contains(")")))
+            {
+                result += list[i];
+            }
+        }
+
+        return result;
     }
 
     bool betweenNumbers(List<string> list, int i)
@@ -390,6 +383,14 @@ public class calculator : MonoBehaviour
         else
         {
             return false;
+        }
+    }
+
+    void printList(List<string> list)
+    {
+        for(int i = 0; i < list.Count; i++)
+        {
+            Debug.Log(list[i]);
         }
     }
 
