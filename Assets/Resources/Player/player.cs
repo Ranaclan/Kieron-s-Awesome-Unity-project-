@@ -1,8 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 
 public class player : MonoBehaviour
 {
@@ -195,7 +192,7 @@ public class player : MonoBehaviour
 
     void Shoot()
     {
-        if(Input.GetKeyDown("mouse 0") && shootTimer <= 0)
+        if (Input.GetKeyDown("mouse 0") && shootTimer <= 0)
         {
             //bullet
             bullet = Instantiate(bullet, cam.transform.position, Quaternion.identity);
@@ -210,7 +207,7 @@ public class player : MonoBehaviour
             muzzleFlash.Play();
         }
 
-        if(shootTimer > 0)
+        if (shootTimer > 0)
         {
             shootTimer -= Time.deltaTime;
         }
@@ -219,7 +216,7 @@ public class player : MonoBehaviour
     void UI()
     {
         //rotation on crosshair
-        xRotationAdditionCrosshair.GetComponent<TMP_Text>().text = (Mathf.Round(xRotationAddition * 100)/ 100).ToString();
+        xRotationAdditionCrosshair.GetComponent<TMP_Text>().text = (Mathf.Round(xRotationAddition * 100) / 100).ToString();
         yRotationAdditionCrosshair.GetComponent<TMP_Text>().text = (Mathf.Round(yRotationAddition * 100) / 100).ToString();
     }
 }
