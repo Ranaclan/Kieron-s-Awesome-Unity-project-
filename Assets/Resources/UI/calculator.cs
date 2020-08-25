@@ -1,7 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 public class calculator : MonoBehaviour
 {
@@ -24,7 +23,7 @@ public class calculator : MonoBehaviour
     private List<string> brackets = new List<string> { };
     private int openBrackets;
     //calculations
-    private List<string> calcNums = new List<string> {""};
+    private List<string> calcNums = new List<string> { "" };
     private int calcNumCount;
     private string result;
 
@@ -96,17 +95,17 @@ public class calculator : MonoBehaviour
                 }
 
                 //division
-                if(text[i] == '/')
+                if (text[i] == '/')
                 {
                     //triple division or no adjacent
-                    if((text[i - 1] == '/' && text[i + 1] == '/') || noAdjacent.Contains(text[i + 1]))
+                    if ((text[i - 1] == '/' && text[i + 1] == '/') || noAdjacent.Contains(text[i + 1]))
                     {
                         remove(i + 1);
                     }
                 }
 
                 //no adjacent operators
-                if(noAdjacent.Contains(text[i]) && noAdjacent.Contains(text[i + 1]))
+                if (noAdjacent.Contains(text[i]) && noAdjacent.Contains(text[i + 1]))
                 {
                     remove(i + 1);
                 }
@@ -134,7 +133,7 @@ public class calculator : MonoBehaviour
 
     void Calculator()
     {
-        if(Input.GetKeyDown("return"))
+        if (Input.GetKeyDown("return"))
         {
             //part 1: do final cleanup of input
             FinalCleanup();
@@ -210,7 +209,7 @@ public class calculator : MonoBehaviour
             //if character is calculation operator:
             if (calculations.Contains(list[i].ToString()))
             {
-                if(list[i] == '/' && list[i - 1] == '/')
+                if (list[i] == '/' && list[i - 1] == '/')
                 {
                     //if charcter is divide and previous character was also divide, add divide to last entry to form modulus
                     newList[count] += list[i];
@@ -555,7 +554,7 @@ public class calculator : MonoBehaviour
         //tangent
         for (int i = 0; i < list.Count; i++)
         {
-            if(doTrig("T", i))
+            if (doTrig("T", i))
             {
                 //replace number with tan of it
                 list[i] = Mathf.Tan(float.Parse(list[i]) * Mathf.Deg2Rad).ToString();
@@ -761,7 +760,7 @@ public class calculator : MonoBehaviour
     void printList(List<string> list)
     {
         string output = "";
-        for(int i = 0; i < list.Count; i++)
+        for (int i = 0; i < list.Count; i++)
         {
             output += list[i];
         }
@@ -781,10 +780,10 @@ public class calculator : MonoBehaviour
                 localText += text[i];
             }
         }
-        if(type == 2)
+        if (type == 2)
         {
             //returns text after index
-            for(int i = index + 1; i < text.Length; i++)
+            for (int i = index + 1; i < text.Length; i++)
             {
                 localText += text[i];
             }
