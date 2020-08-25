@@ -12,7 +12,7 @@ public class bullet : MonoBehaviour
     //collisions
     private Collider[] collisions;
     //destroy
-    private float time;
+    public float time;
     //player
     public Transform player;
     private Transform cam;
@@ -28,7 +28,7 @@ public class bullet : MonoBehaviour
         rb = transform.GetComponent<Rigidbody>();
         rb.velocity = (cam.transform.forward * initial);
     }
-
+        
     void FixedUpdate()
     {
         Gravity();
@@ -67,9 +67,9 @@ public class bullet : MonoBehaviour
         time += Time.deltaTime;
 
         //destroys bullet after time
-        if(time >= 50)
+        if(time >= 1000000)
         {
-            Destroy(gameObject);
+            //Destroy(gameObject);
         }
     }
 }
