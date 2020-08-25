@@ -6,6 +6,8 @@ using TMPro;
 
 public class player : MonoBehaviour
 {
+    //payer
+    public bool control;
     //movement
     private Rigidbody rb;
     private float acceleration;
@@ -24,6 +26,7 @@ public class player : MonoBehaviour
     private float ySensitivty;
     private float yRotationAddition;
     //camera reset
+    private float resetFraction;
     private Quaternion xDefault;
     private Quaternion yDefault;
     private float xResetFraction;
@@ -34,25 +37,28 @@ public class player : MonoBehaviour
     private float yRotationAdditionStart;
     //target
     private GameObject target;
-    private float zDistance;
-    private float time;
-    private float bulletDrop;
-    private float xAngle;
-    //shooty
+    private float distance;
+    //shooting
+    private GameObject gun;
+    private float shootDelay;
+    private float shootTimer;
+    private ParticleSystem muzzleFlash;
+    //bullet
     private GameObject bullet;
     private bullet bulletScript;
-    private float shootDelay;
+    private float time;
     private float initial;
     private float mass;
+    //world
+    private float gravity;
     //ui
     private GameObject xRotationAdditionCrosshair;
     private GameObject yRotationAdditionCrosshair;
 
-    //controller
-    private float gravity;
-
     void Start()
     {
+        //player
+        control = true;
         //movement
         rb = transform.GetComponent<Rigidbody>();
         acceleration = 5;
@@ -68,18 +74,25 @@ public class player : MonoBehaviour
         yDefault = cam.rotation;
         xResetFraction = 1;
         yResetFraction = 1;
-        //controller
-        gravity = -10f;
-        //shooty
-        bullet = Resources.Load<GameObject>("Weapon/bullet");
-        initial = 80;
-        shootDelay = 0;
         //target
         target = GameObject.Find("Target");
-        zDistance = Mathf.Sqrt((target.transform.position - transform.position).x * (target.transform.position - transform.position).x);
-        time = zDistance / initial;
-        bulletDrop = (-gravity * time * time) / 2;
-        xAngle = Mathf.Atan2(bulletDrop, zDistance) * Mathf.Rad2Deg;
+        distance = Random.Range(-100, -50);
+        //Debug.Log("distance " + distance);
+        //target.transform.position = transform.position + new Vector3(distance, 0, 0);
+        target.transform.position = new Vector3(distance, 3.5f, 0);
+        //shooting
+        gun = cam.transform.GetChild(0).gameObject;
+        shootDelay = 0.5f;
+        shootTimer = 0;
+        muzzleFlash = gun.transform.GetChild(0).GetComponent<ParticleSystem>();
+        //bullet
+        bullet = Resources.Load<GameObject>("Weapon/bullet");
+        initial = Random.Range(30, 150);
+        //Debug.Log("initial" + initial);
+        time = (distance / initial);
+        //world
+        gravity = Random.Range(-3, -25);
+        //Debug.Log("gravity " + gravity);
         //ui
         Cursor.lockState = CursorLockMode.Locked;
         xRotationAdditionCrosshair = transform.GetChild(1).GetChild(1).gameObject;
@@ -88,35 +101,54 @@ public class player : MonoBehaviour
 
     void FixedUpdate()
     {
-        Look();
-        Shoot();
-        UI();
+        //disable when ui open
+        if (control)
+        {
+            //camera rotation stuff
+            Turn();
+            CameraRotate();
+            //shooty stuff
+            Shoot();
+            //ui stuff
+            UI();
+        }
+
+        CameraReset();
     }
 
-    void Look()
+    void Turn()
     {
-        //player rotate
-        if(!Input.GetKey("y"))
+        //input
+        if (!Input.GetKey("y"))
         {
             xRotation = Input.GetAxis("Mouse X") * xSensitivty * Time.deltaTime;
         }
+
+        //rotate
         transform.Rotate(0, xRotation, 0);
+
+        //keep turn rotation -360<x<360
         xRotationAddition += xRotation;
-        if(xRotationAddition >= 360)
+        if (xRotationAddition >= 360)
         {
             xRotationAddition -= 360;
         }
-        if(xRotationAddition <= -360)
+        if (xRotationAddition <= -360)
         {
             xRotationAddition += 360;
         }
+    }
 
-        //camera rotate
+    void CameraRotate()
+    {
+        //input
         if (!Input.GetKey("x"))
         {
             yRotation = Input.GetAxis("Mouse Y") * ySensitivty * Time.deltaTime;
         }
         yRotationAddition -= yRotation;
+
+        //clamp rotation
         if (yRotationAddition >= 90)
         {
             yRotation = 0;
@@ -127,72 +159,67 @@ public class player : MonoBehaviour
             yRotation = 0;
             yRotationAddition = -90;
         }
+
+        //rotate
         cam.Rotate(yRotation, 0, 0);
+    }
+
+    void CameraReset()
+    {
 
         //reset
-        if (Input.GetKey("q"))
+        if (Input.GetKeyDown("q") && resetFraction >= 1)
         {
-            if (!Input.GetKey("y"))
-            {
-                xStart = transform.rotation;
-                xRotationAdditionStart = xRotationAddition;
-                xResetFraction = 0;
-            }
+            resetFraction = 0;
 
-            if (!Input.GetKey("x"))
-            {
-                yStart = cam.transform.rotation;
-                yRotationAdditionStart = yRotationAddition;
-                yResetFraction = 0;
-            }
+            xStart = transform.rotation;
+            xRotationAdditionStart = xRotationAddition;
+
+            yStart = cam.transform.rotation;
+            yRotationAdditionStart = yRotationAddition;
         }
 
-        if (xResetFraction < 1)
+        if (resetFraction < 1)
         {
-            transform.rotation = Quaternion.Slerp(xStart, xDefault, xResetFraction);
-            xResetFraction += Time.deltaTime;
-            xRotationAddition = Mathf.Lerp(xRotationAdditionStart, 0, xResetFraction);
-        }
-        else
-        {
-            xResetFraction = 1;
-        }
+            //x
+            transform.rotation = Quaternion.Slerp(xStart, xDefault, resetFraction);
+            xRotationAddition = Mathf.Lerp(xRotationAdditionStart, 0, resetFraction);
 
-        if (yResetFraction < 1)
-        {
-            cam.transform.rotation = Quaternion.Slerp(yStart, yDefault, yResetFraction);
-            yResetFraction += Time.deltaTime;
-            yRotationAddition = Mathf.Lerp(yRotationAdditionStart, 0, yResetFraction);
-        }
-        else
-        {
-            yResetFraction = 1;
+            //y
+            cam.transform.rotation = Quaternion.Slerp(yStart, yDefault, resetFraction);
+            yRotationAddition = Mathf.Lerp(yRotationAdditionStart, 0, resetFraction);
+
+            resetFraction += Time.deltaTime;
         }
     }
 
     void Shoot()
     {
-        if(Input.GetKeyDown("mouse 0") && shootDelay <= 0)
+        if(Input.GetKeyDown("mouse 0") && shootTimer <= 0)
         {
+            //bullet
             bullet = Instantiate(bullet, cam.transform.position, Quaternion.identity);
             bulletScript = bullet.GetComponent<bullet>();
             bulletScript.initial = initial;
             bulletScript.gravity = gravity;
+            bulletScript.time = (time + 5);
             bulletScript.player = transform;
             bullet = Resources.Load<GameObject>("Weapon/bullet");
-            shootDelay = 0.5f;
+            //shoot
+            shootTimer = shootDelay;
+            muzzleFlash.Play();
         }
 
-        if(shootDelay > 0)
+        if(shootTimer > 0)
         {
-            shootDelay -= Time.deltaTime;
+            shootTimer -= Time.deltaTime;
         }
     }
 
     void UI()
     {
         //rotation on crosshair
-        xRotationAdditionCrosshair.GetComponent<TMP_Text>().text = xRotationAddition.ToString();
-        yRotationAdditionCrosshair.GetComponent<TMP_Text>().text = yRotationAddition.ToString();
+        xRotationAdditionCrosshair.GetComponent<TMP_Text>().text = (Mathf.Round(xRotationAddition * 100)/ 100).ToString();
+        yRotationAdditionCrosshair.GetComponent<TMP_Text>().text = (Mathf.Round(yRotationAddition * 100) / 100).ToString();
     }
 }
