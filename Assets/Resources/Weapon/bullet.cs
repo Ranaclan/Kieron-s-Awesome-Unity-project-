@@ -19,7 +19,7 @@ public class bullet : MonoBehaviour
 
     void Start()
     {
-        startTime = Time.time;
+        time = Time.time;
         //player
         cam = player.GetChild(0);
         //movement

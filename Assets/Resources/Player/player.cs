@@ -5,15 +5,6 @@ public class player : MonoBehaviour
 {
     //payer
     public bool control;
-    //movement
-    private Rigidbody rb;
-    private float acceleration;
-    private float decceleration;
-    private float max;
-    private float forward;
-    private float back;
-    private float right;
-    private float left;
     //camera
     private Transform cam;
     private float xRotation;
@@ -22,78 +13,108 @@ public class player : MonoBehaviour
     private float yRotation;
     private float ySensitivty;
     private float yRotationAddition;
+    private Vector3 transformLocal;
+    private Vector3 camLocal;
     //camera reset
-    private float resetFraction;
-    private Quaternion xDefault;
-    private Quaternion yDefault;
-    private float xResetFraction;
-    private float yResetFraction;
-    private Quaternion xStart;
-    private Quaternion yStart;
+    private float resetFraction = 1;
+    private Vector3 xStart;
+    private Vector3 yStart;
     private float xRotationAdditionStart;
     private float yRotationAdditionStart;
+    private Quaternion transformDefault;
+    private Quaternion cameraDefault;
+    //ui
+    private GameObject xCompass;
+    private GameObject yCompass;
     //target
     private GameObject target;
     private float distance;
-    //shooting
+    //gun
     private GameObject gun;
     private float shootDelay;
     private float shootTimer;
     private ParticleSystem muzzleFlash;
+    //seed
+    private int seed;
     //bullet
     private GameObject bullet;
     private bullet bulletScript;
-    private float time;
-    private float initial;
+    private float muzzleForce;
     private float mass;
-    //world
+    private float muzzleAcceleration;
+    private float muzzleTime;
+    private float gunLength;
+    public float gunMass;
+    private float bulletArea;
+    private float dragCoefficient;
+    public float initial;
+    //recoil
+    public float recoilForce;
+    public float recoilMoment;
+    public float averageMomentsLength;
+    public float halfLength;
+    public float recoilAcceleration;
+    public float recoil;
+    public float recoilTotalAngle;
+    public float recoilAngularTarget = 0;
+    private float recoilVelocity;
+    private float recoilDisplacement;
+    private bool recoiled;
+    //stars
+    private star star;
+    private int starValue;
+    //planet
+    private float planetMass;
+    private float radius;
     private float gravity;
-    //ui
-    private GameObject xRotationAdditionCrosshair;
-    private GameObject yRotationAdditionCrosshair;
+    public const float gravitationalConstant = (float)6.67408 * (10 ^ -11);
+    //wind
+    private float windSpeed;
+    private float windBearing;
+    private float windPressure;
+    private float windForce;
+    //map
+    private mapGenerate map;
+
+    public float time;
+    public float drop;
+    public float angle;
+
+    public float a;
 
     void Start()
     {
         //player
         control = true;
-        //movement
-        rb = transform.GetComponent<Rigidbody>();
-        acceleration = 5;
-        decceleration = 15;
-        max = 150;
         //camera
         cam = transform.GetChild(0);
         Cursor.lockState = CursorLockMode.Locked;
         xSensitivty = 25;
         ySensitivty = -25;
+        transformLocal = transform.localEulerAngles;
+        camLocal = cam.transform.localEulerAngles;
         //camera reset
-        xDefault = transform.rotation;
-        yDefault = cam.rotation;
-        xResetFraction = 1;
-        yResetFraction = 1;
+        transformDefault = transform.rotation;
+        cameraDefault = cam.rotation;
+        //ui
+        Cursor.lockState = CursorLockMode.Locked;
+        xCompass = transform.GetChild(1).GetChild(1).gameObject;
+        yCompass = transform.GetChild(1).GetChild(2).gameObject;
         //target
         target = GameObject.Find("Target");
-        distance = Random.Range(-100, -50);
-        //Debug.Log("distance " + distance);
-        //target.transform.position = transform.position + new Vector3(distance, 0, 0);
-        target.transform.position = new Vector3(distance, 3.5f, 0);
-        //shooting
+        //gun
         gun = cam.transform.GetChild(0).gameObject;
         shootDelay = 0.5f;
         shootTimer = 0;
         muzzleFlash = gun.transform.GetChild(0).GetComponent<ParticleSystem>();
         //bullet
         bullet = Resources.Load<GameObject>("Weapon/bullet");
-        initial = Random.Range(30, 150);
-        //Debug.Log("initial" + initial);
-        time = (distance / initial);
-        //world
-        gravity = Random.Range(-3, -25);
-        //Debug.Log("gravity " + gravity);
-        //ui
-        Cursor.lockState = CursorLockMode.Locked;
-        xRotationAdditionCrosshair = transform.GetChild(1).GetChild(1).gameObject;
-        yRotationAdditionCrosshair = transform.GetChild(1).GetChild(2).gameObject;
+        //stars
+        star = GameObject.Find("Stars").GetComponent<star>();
+        //map
+        map = GameObject.Find("mapGenerator").GetComponent<mapGenerate>();
+
+        Randomise(Seed());
     }
 
     void FixedUpdate()
@@ -104,13 +125,81 @@ public class player : MonoBehaviour
             //camera rotation stuff
             Turn();
             CameraRotate();
-            //shooty stuff
+            CameraReset();
+            //gun stuff
             Shoot();
+            Inspect();
+            Recoil();
             //ui stuff
             UI();
         }
 
-        CameraReset();
+        if (Input.GetKey("l"))
+        {
+            Randomise(Seed());
+        }
+
+        if(Input.GetKey("o"))
+        {
+            Randomise(seed);
+        }
+    }
+
+    public int Seed()
+    {
+        return Random.Range(-99999, 99999);
+    }
+
+    void Randomise(int seed)
+    {
+        //seed
+        Random.InitState(seed);
+
+        //values
+        //target
+        distance = Random.Range(-100, -50);
+        target.transform.position = new Vector3(distance, 3.5f, 0);
+        //planet
+        planetMass = Random.Range(100, 1000);
+        radius = Random.Range(50, 200);
+        gravity = (-50 * planetMass) / (radius * radius);
+        Debug.Log("gravity " + gravity);
+        //bullet
+        muzzleForce = Random.Range(80, 150);
+        Debug.Log("muzzle force " + muzzleForce);
+        mass = Random.Range(2, 30);
+        muzzleAcceleration = muzzleForce / mass;
+        muzzleTime = Random.Range(1, 10);
+        Debug.Log("muzzle time " + muzzleTime);
+        bulletArea = Random.Range(1, 15);
+        dragCoefficient = Random.Range(0.1f, 5);
+        //gun
+        gunLength = muzzleAcceleration * muzzleTime * muzzleTime * 0.5f;
+        halfLength = gunLength * 0.5f;
+        Debug.Log("gun length " + gunLength);
+        gunMass = Random.Range(30, 50);
+        Debug.Log("gun mass " + gunMass);
+        //recoil
+        recoilMoment = (muzzleForce * gunLength) + (halfLength * gravity * gunMass);
+        averageMomentsLength = (gunLength + halfLength) / 2;
+        recoilForce = recoilMoment / averageMomentsLength;
+        recoilAcceleration = recoilForce / gunMass;
+        recoil = recoilAcceleration * muzzleTime * muzzleTime * 0.5f;
+        recoilTotalAngle = Mathf.Rad2Deg * Mathf.Atan(recoil / gunLength);
+        Debug.Log(recoilTotalAngle);
+        //wind
+        windSpeed = Random.Range(1, 20);
+        windPressure = 0.0026f * windSpeed * windSpeed;
+        windForce = windPressure * bulletArea * dragCoefficient;
+
+        initial = muzzleAcceleration * muzzleTime;
+        time = -distance / initial;
+        drop = gravity * 0.5f * time * time;
+        angle = Mathf.Atan2(drop, distance) * Mathf.Rad2Deg;
+
+        //world
+        starValue = Random.Range(1, 10);
+        star.Stars(starValue);
     }
 
     void Turn()
@@ -133,6 +222,53 @@ public class player : MonoBehaviour
         if (xRotationAddition <= -360)
         {
             xRotationAddition += 360;
+        }
+    }
+
+    void Shoot()
+    {
+        if (Input.GetKeyDown("mouse 0") && shootTimer <= 0)
+        {
+            //bullet
+            bullet = Instantiate(bullet, cam.transform.position, Quaternion.identity);
+            bulletScript = bullet.GetComponent<bullet>();
+            bulletScript.initial = initial;
+            bulletScript.gravity = gravity;
+            bulletScript.player = transform;
+            bullet = Resources.Load<GameObject>("Weapon/bullet");
+            //recoil
+            recoilAngularTarget += recoilTotalAngle;
+            recoilVelocity = 0;
+            recoilDisplacement = 0;
+            cameraDefault.x -= recoilTotalAngle;
+            recoiled = true;
+            //shoot
+            shootTimer = shootDelay;
+            muzzleFlash.Play();
+        }
+
+        if (shootTimer > 0)
+        {
+            shootTimer -= Time.deltaTime;
+        }
+    }
+
+    void Recoil()
+    {
+        float recoilAngle;
+        if (recoilAngularTarget > 0)
+        {
+            recoilAngle = recoilTotalAngle / muzzleTime;
+            cam.Rotate(-recoilAngle, 0, 0);
+            recoilAngularTarget -= recoilAngle;
+        }
+
+        if (recoilAngularTarget <= 0 && recoiled)
+        {
+            transformDefault = transform.transform.rotation;
+            cameraDefault = cam.transform.rotation;
+            camLocal = cam.transform.localEulerAngles;
+            recoiled = false;
         }
     }
 
@@ -163,60 +299,69 @@ public class player : MonoBehaviour
 
     void CameraReset()
     {
-
         //reset
         if (Input.GetKeyDown("q") && resetFraction >= 1)
         {
+            Debug.Log(xStart);
+            Debug.Log("a");
+            Debug.Log(transformDefault);
             resetFraction = 0;
 
-            xStart = transform.rotation;
             xRotationAdditionStart = xRotationAddition;
-
-            yStart = cam.transform.rotation;
             yRotationAdditionStart = yRotationAddition;
         }
 
         if (resetFraction < 1)
         {
-            //x
-            transform.rotation = Quaternion.Slerp(xStart, xDefault, resetFraction);
+            //transform reset
+            transform.rotation = Quaternion.Slerp(transform.rotation, transformDefault, resetFraction);
             xRotationAddition = Mathf.Lerp(xRotationAdditionStart, 0, resetFraction);
 
-            //y
-            cam.transform.rotation = Quaternion.Slerp(yStart, yDefault, resetFraction);
+            //cam reset
+            cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, cameraDefault, resetFraction);
             yRotationAddition = Mathf.Lerp(yRotationAdditionStart, 0, resetFraction);
 
             resetFraction += Time.deltaTime;
         }
     }
 
-    void Shoot()
+    void Inspect()
     {
-        if (Input.GetKeyDown("mouse 0") && shootTimer <= 0)
-        {
-            //bullet
-            bullet = Instantiate(bullet, cam.transform.position, Quaternion.identity);
-            bulletScript = bullet.GetComponent<bullet>();
-            bulletScript.initial = initial;
-            bulletScript.gravity = gravity;
-            bulletScript.time = (time + 5);
-            bulletScript.player = transform;
-            bullet = Resources.Load<GameObject>("Weapon/bullet");
-            //shoot
-            shootTimer = shootDelay;
-            muzzleFlash.Play();
-        }
 
-        if (shootTimer > 0)
-        {
-            shootTimer -= Time.deltaTime;
-        }
     }
 
     void UI()
     {
+        /*
+        float camAngle;
+        float transformAngle;
+        string camText;
+        string transformText;
+        camAngle = cam.transform.localEulerAngles.x;
+        transformAngle = transform.localEulerAngles.y;
+        if (transformAngle > 180)
+        {
+            transformAngle = 360 - transformAngle;
+            transformAngle *= -1;
+        }
+        camText = (Mathf.Round((camAngle - camLocal.x) * -100) / 100).ToString();
+        transformText = (Mathf.Round((transformAngle - transformLocal.x) * -100) / 100).ToString();
+        xCompass.GetComponent<TMP_Text>().text = fixAngles(camText);
+        yCompass.GetComponent<TMP_Text>().text = fixAngles(transformText);
+        */
+
         //rotation on crosshair
-        xRotationAdditionCrosshair.GetComponent<TMP_Text>().text = (Mathf.Round(xRotationAddition * 100) / 100).ToString();
-        yRotationAdditionCrosshair.GetComponent<TMP_Text>().text = (Mathf.Round(yRotationAddition * 100) / 100).ToString();
+        xCompass.GetComponent<TMP_Text>().text = (Mathf.Round(xRotationAddition * 100) / 100).ToString();
+        yCompass.GetComponent<TMP_Text>().text = (Mathf.Round(yRotationAddition * 100) / 100).ToString();
+    }
+
+    string fixAngles(string x)
+    {
+        if(x == "360" || x == "-360")
+        {
+            return "0";
+        }
+
+        return x;
     }
 }
