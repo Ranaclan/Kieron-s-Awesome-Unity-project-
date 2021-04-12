@@ -9,24 +9,16 @@ public class calculator : MonoBehaviour
     private GameObject calculatorObject;
     private TMP_Text messages;
     //cleanup
-    private List<string> first = new     List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "-", "(", "T", "C", "S", "t", "c", "s", "G", "A" };
+    private List<string> first = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "-", "(", "T", "C", "S", "t", "c", "s", "G", "A" };
     private List<char> noAdjacent = new List<char> { '^', '*', '+' };
-    private float textLength;
-    private bool removeLast;
     //lists
     private List<string> numbers = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "." };
     private List<string> calculations = new List<string> { "+", "-", "*", "/", "//", "^", "(", ")", "T", "C", "S", "t", "c", "s" };
-    private List<char> trig = new List<char> { 'T', 'C', 'S', 't', 'c', 's' };
-    private List<string> brackets = new List<string> { };
-    private int openBrackets;
     //calculations
     private List<string> calcNums = new List<string> { "" };
-    private int calcNumCount;
     private string result = "0";
-    //constants
-    public const string gravitationalConstant = "0.0000000000667408";
-
-    //private float frameCount;
+    private List<string> brackets = new List<string> { };
+    private int openBrackets;
 
     void Start()
     {
@@ -39,15 +31,7 @@ public class calculator : MonoBehaviour
 
     void Update()
     {
-        UI();
         Calculator();
-    }
-
-    void UI()
-    {
-        //field type
-
-
     }
 
     public void cleanup(string text)
@@ -134,31 +118,13 @@ public class calculator : MonoBehaviour
     {
         if (Input.GetKeyDown("return"))
         {
-            //part 1: do final cleanup of input
-            //FinalCleanup();
-
             //part 1: put all characters into calcNums list and check through list to perform calculations
             calcNums = new List<string> { "" };
-            calcNumCount = 0;
             calcNums = makeList(calculatorText.text, 0, calculatorText.text.Length);
 
             //part 2: final executution:
             result = calculate(calcNums);
-            //result = doCalculate(calcNums);
-            Debug.Log("result: " + result);
             messages.text = "Result: " + (Mathf.Round(float.Parse(result) * 1000) / 1000);
-        }
-    }
-
-    void FinalCleanup()
-    {
-        for(int i = 0; i < calculatorText.text.Length; i++)
-        {
-            if(calculatorText.text[i] == 'G')
-            {
-                remove(i);
-                calculatorText.text = calculatorText.text.Insert(i, gravitationalConstant);
-            }
         }
     }
 
@@ -248,58 +214,100 @@ public class calculator : MonoBehaviour
     string calculate(List<string> list)
     {
         //do calculations in list
-        int j;
         openBrackets = 0;
         brackets = new List<string> { };
 
         //basic calculations: brackets, trigonometry, indices, modulo, division, multiplication, addition, subtraction
-
         //brackets
+        Brackets(list);
+
+        //tangent
+        Tangent(list);
+
+        //cosine
+        Cosine(list);
+
+        //sine
+        Sine(list);
+
+        //inverse tangent
+        InverseTan(list);
+
+        //inverse cosine
+        InverseCos(list);
+
+        //inverse sine
+        InverseSin(list);
+
+        //indices
+        Indices(list);
+
+        //modulo
+        Modulo(list);
+
+        //division
+        Division(list);
+
+        //multiplication
+        Multiplication(list);
+
+        //addition
+        Addition(list);
+
+        //subtraction
+        Subtraction(list);
+
+        //create result
+        result = "";
         for (int i = 0; i < list.Count; i++)
         {
-            //brackets
-            if (list[i] == "(" || list[i] == ")")
+            result += list[i];
+        }
+
+        return result;
+    }
+
+    void Brackets(List<string> list)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (list[i] == "(")
             {
-                if (list[i] == "(")
-                {
-                    //open bracket
-                    if (openBrackets == 0)
-                    {
-                        list.RemoveAt(i);
-                        i--;
-                    }
-                    openBrackets++;
-                    continue;
-                }
+                //open bracket
+                openBrackets++;
 
-                if (list[i] == ")")
+                //first of brackets
+                if (openBrackets == 0)
                 {
-                    //close bracket
-                    openBrackets--;
-
-                    //if brackets now closed
-                    if (openBrackets == 0)
-                    {
-                        //list.RemoveAt(i);
-                        //i--;
-                        list[i] = calculate(brackets);
-                    }
-                    else
-                    {
-                        list.RemoveAt(i);
-                        i--;
-                    }
+                    list.RemoveAt(i);
+                    i--;
                 }
+                continue;
             }
-            else
+
+            if (list[i] == ")")
             {
-                //brackets content
-                if (openBrackets > 0)
+                //close bracket
+                openBrackets--;
+
+                //if brackets now closed
+                if (openBrackets == 0)
+                {
+                    list[i] = calculate(brackets);
+                }
+                else
                 {
                     brackets.Add(list[i]);
                     list.RemoveAt(i);
                     i--;
                 }
+            }
+            //brackets content
+            if (openBrackets > 0)
+            {
+                brackets.Add(list[i]);
+                list.RemoveAt(i);
+                i--;
             }
         }
         //remove remaining brackets
@@ -311,77 +319,91 @@ public class calculator : MonoBehaviour
                 i--;
             }
         }
+    }
 
-        //tangent
+    void Tangent(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doTrig("T", i))
+            if (doTrig("T", i, list))
             {
                 //replace number with tan of it
                 list[i] = Mathf.Tan(float.Parse(list[i]) / Mathf.Rad2Deg).ToString();
                 i--;
             }
         }
+    }
 
-        //cosine
+    void Cosine(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doTrig("C", i))
+            if (doTrig("C", i, list))
             {
                 //replace number with tan of it
                 list[i] = Mathf.Cos(float.Parse(list[i]) / Mathf.Rad2Deg).ToString();
                 i--;
             }
         }
+    }
 
-        //sine
+    void Sine(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doTrig("S", i))
+            if (doTrig("S", i, list))
             {
                 //replace number with tan of it
                 list[i] = Mathf.Sin(float.Parse(list[i]) / Mathf.Rad2Deg).ToString();
                 i--;
             }
         }
+    }
 
-        //inverse tangent
+    void InverseTan(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doTrig("t", i))
+            if (doTrig("t", i, list))
             {
                 //replace number with inverse tan of it
                 list[i] = (Mathf.Rad2Deg * Mathf.Atan(float.Parse(list[i]))).ToString();
                 i--;
             }
         }
+    }
 
-        //inverse cosine
+    void InverseCos(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doTrig("c", i))
+            if (doTrig("c", i, list))
             {
                 //replace number with inverse cos of it
                 list[i] = (Mathf.Rad2Deg * Mathf.Acos(float.Parse(list[i]))).ToString();
                 i--;
             }
         }
+    }
 
-        //inverse sine
+    void InverseSin(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doTrig("s", i))
+            if (doTrig("s", i, list))
             {
                 //replace number with inverse sin of it
                 list[i] = (Mathf.Rad2Deg * Mathf.Asin(float.Parse(list[i]))).ToString();
                 i--;
             }
         }
+    }
 
-        //indices
+    void Indices(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doCalculation("^", i))
+            if (doCalculation("^", i, list))
             {
                 //removes two entries and replaces last with product
                 list[i] = Mathf.Pow(float.Parse(list[i - 1]), float.Parse(list[i + 1])).ToString();
@@ -390,11 +412,13 @@ public class calculator : MonoBehaviour
                 i -= 2;
             }
         }
+    }
 
-        //modulo
+    void Modulo(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doCalculation("//", i))
+            if (doCalculation("//", i, list))
             {
                 //removes two entries and replaces last with modulus
                 list[i] = (float.Parse(list[i - 1]) % float.Parse(list[i + 1])).ToString();
@@ -403,11 +427,13 @@ public class calculator : MonoBehaviour
                 i -= 2;
             }
         }
+    }
 
-        //division
+    void Division(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doCalculation("/", i))
+            if (doCalculation("/", i, list))
             {
                 //removes two entries and replaces last with product
                 list[i] = (float.Parse(list[i - 1]) / float.Parse(list[i + 1])).ToString();
@@ -416,11 +442,13 @@ public class calculator : MonoBehaviour
                 i -= 2;
             }
         }
+    }
 
-        //multiplication
+    void Multiplication(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doCalculation("*", i))
+            if (doCalculation("*", i, list))
             {
                 //removes two entries and replaces last with product
                 list[i] = (float.Parse(list[i - 1]) * float.Parse(list[i + 1])).ToString();
@@ -429,11 +457,13 @@ public class calculator : MonoBehaviour
                 i -= 2;
             }
         }
+    }
 
-        //addition
+    void Addition(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doCalculation("+", i))
+            if (doCalculation("+", i, list))
             {
                 //removes two entries and replaces last with sum
                 list[i] = (float.Parse(list[i - 1]) + float.Parse(list[i + 1])).ToString();
@@ -442,11 +472,13 @@ public class calculator : MonoBehaviour
                 i -= 2;
             }
         }
+    }
 
-        //subtraction
+    void Subtraction(List<string> list)
+    {
         for (int i = 0; i < list.Count; i++)
         {
-            if (doCalculation("-", i))
+            if (doCalculation("-", i, list))
             {
                 //removes two entries and replaces last with sum
                 list[i] = (float.Parse(list[i - 1]) - float.Parse(list[i + 1])).ToString();
@@ -455,48 +487,39 @@ public class calculator : MonoBehaviour
                 i -= 2;
             }
         }
+    }
 
-        bool doTrig(string calculation, int i)
+    bool doTrig(string calculation, int i, List<string> list)
+    {
+        //check for calculation and place
+        if (list[i] == calculation && i != list.Count - 1)
         {
-            //check for calculation and place
-            if (list[i] == calculation && i != list.Count - 1)
+            //check for number afterwards
+            string after = list[i + 1];
+            if (numbers.Contains(after[after.Length - 1].ToString()))
             {
-                //check for number afterwards
-                string after = list[i + 1];
-                if (numbers.Contains(after[after.Length - 1].ToString()))
-                {
-                    //remove trig function and return number's index
-                    list.RemoveAt(i);
-                    return true;
-                }
+                //remove trig function and return true
+                list.RemoveAt(i);
+                return true;
             }
-
-            return false;
         }
 
-        bool doCalculation(string calculation, int i)
+        return false;
+    }
+
+    bool doCalculation(string calculation, int i, List<string> list)
+    {
+        //check for calculation and place
+        if (list[i] == calculation && i != 0 && i != list.Count - 1)
         {
-            //check for calculation and place
-            if (list[i] == calculation && i != 0 && i != list.Count - 1)
+            //check numbers on either side of operator
+            if (betweenNumbers(list, i))
             {
-                //check numbers on either side of operator
-                if (betweenNumbers(list, i))
-                {
-                    return true;
-                }
+                return true;
             }
-
-            return false;
         }
 
-        //create result
-        result = "";
-        for (int i = 0; i < list.Count; i++)
-        {
-            result += list[i];
-        }
-
-        return result;
+        return false;
     }
 
     bool betweenNumbers(List<string> list, int i)

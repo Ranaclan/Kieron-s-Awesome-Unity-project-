@@ -19,14 +19,12 @@ public class mapGenerate : MonoBehaviour
     public float heightmapAmplitudeMultiplier = 4.5f;
     public float heightmapFrequencyMultiplier = 0.3f;
     public float heightmapOffset;
-    private float maxHeight = 0;
-    private float minHeight = 0;
     //colours
     private Color baseColour;
     public float baseRed;
     public float baseGreen;
-    //perlin colours
     public float baseBlue;
+    //perlin colours
     public float perlinRed;
     public float perlinGreen;
     public float perlinBlue;
@@ -67,39 +65,26 @@ public class mapGenerate : MonoBehaviour
         GetComponent<MeshFilter>().mesh = mesh;
         meshRenderer = GetComponent<MeshRenderer>();
 
-        //colours
-        //Randomise(seed);
-
         //material
         mat = meshRenderer.material;
     }
 
     void Update()
     {
-        //new mesh
-        if (Input.GetKey("space"))
+        if(Input.GetKey("a"))
         {
-            Seed();
-            Randomise(Seed());
-            MeshData();
-            UpdateMesh();
-        }
-
-        //toggle update mesh
-        if (Input.GetKeyDown("a"))
-        {
-            update = !update;
-        }
-
-        //single update mesh
-        if (Input.GetKey("d") || update)
-        {
-            Randomise(seed);
-            MeshData();
-            UpdateMesh();
+            Generate(Random.Range(-999, 999));
         }
     }
 
+    public void Generate(int seed)
+    {
+        Randomise(seed);
+        MeshData();
+        UpdateMesh();
+    }
+
+    //comment out
     public int Seed()
     {
         return Random.Range(-99999, 99999);
@@ -142,8 +127,6 @@ public class mapGenerate : MonoBehaviour
     {
         //vertices
         vertices = new Vector3[(width + 1) * (depth + 1)];
-        maxHeight = 0;
-        minHeight = 0;
 
         //texture
         uvMap = new Vector2[vertices.Length];
@@ -197,26 +180,13 @@ public class mapGenerate : MonoBehaviour
         }
 
         vertices[i] = noiseValue;
-
-        if (perlin > maxHeight)
-        {
-            maxHeight = perlin;
-        }
-        if (perlin < minHeight)
-        {
-            minHeight = perlin;
-        }
     }
 
     void PerlinColourMap()
     {
-        float offsetRed = 0;
-        float offsetGreen = 0;
-        float offsetBlue = 0;
         Vector3[] colour = new Vector3[vertices.Length];
-        float maxRed = 0;
-        float maxGreen = 0;
-        float maxBlue = 0;
+        float frequency = colourmapFrequency;
+        float amplitude = colourmapAmplitude;
 
         for (int octave = 0; octave < colourmapOctaves; octave++)
         {
@@ -225,25 +195,17 @@ public class mapGenerate : MonoBehaviour
                 for (int x = 0; x <= width; x++)
                 {
                     //perlin noise
-                    perlinRed = Perlin(x, z, colourmapFrequency, colourmapAmplitude, colourmapScale, offsetRed) * perlinRedMultiplier;
-                    perlinGreen = Perlin(x, z, colourmapFrequency, colourmapAmplitude, colourmapScale, offsetGreen) * perlinGreenMultiplier;
-                    perlinBlue = Perlin(x, z, colourmapFrequency, colourmapAmplitude, colourmapScale, offsetBlue) * perlinBlueMultiplier;
+                    float perlinFunction = Perlin(x, z, frequency, amplitude, colourmapScale, 0);
+                    perlinRed = perlinFunction * perlinRedMultiplier;
+                    perlinGreen = perlinFunction * perlinGreenMultiplier;
+                    perlinBlue = perlinFunction * perlinBlueMultiplier;
 
                     colour[z * width + x] += new Vector3(perlinRed, perlinGreen, perlinBlue);
-                    if (colour[z * width + x].x > maxRed)
-                    {
-                        maxRed = colour[z * width + x].x;
-                    }
-                    if (colour[z * width + x].y > maxGreen)
-                    {
-                        maxGreen = colour[z * width + x].y;
-                    }
-                    if (colour[z * width + x].z > maxBlue)
-                    {
-                        maxBlue = colour[z * width + x].z;
-                    }
                 }
             }
+
+            frequency *= colourmapFrequencyMultiplier;
+            amplitude *= colourmapAmplitudeMultiplier;
         }
 
 
@@ -254,25 +216,7 @@ public class mapGenerate : MonoBehaviour
                 colourMap[z * width + x].r = (colour[z * width + x].x);
                 colourMap[z * width + x].g = (colour[z * width + x].y);
                 colourMap[z * width + x].b = (colour[z * width + x].z);
-                /*
-                colourMap[z * width + x].r = (colour[z * width + x].x / maxRed);
-                colourMap[z * width + x].g = (colour[z * width + x].y / maxBlue);
-                colourMap[z * width + x].b = (colour[z * width + x].z / maxGreen);
-                */
             }
-        }
-    }
-
-    void HeightColourMap(int x, int z)
-    {
-        //minColourHeight = minHeight + colourHeightFraction * (maxHeight - minHeight);
-        //minColourHeight = minHeight;
-        //colourHeightRange = vertices[z * width + x].y - minColourHeight * 0.01f;
-        heightColour = new Color(1, 0, 0);
-
-        if (vertices[z * width + x].y > minColourHeight)
-        {
-            colourMap[z * width + x] = heightColour;
         }
     }
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using TMPro;
 
 public class UI : MonoBehaviour
 {
@@ -9,11 +10,10 @@ public class UI : MonoBehaviour
     private int active;
     private List<string> tabKeys = new List<string> { "1", "2" };
     //player
-    private GameObject player;
+    private GameObject playerObject;
     private player script;
-    //calculator
-    private GameObject calculator;
-    private GameObject calcInput;
+    //ammo
+    private GameObject ammoDisplay;
 
     void Start()
     {
@@ -22,23 +22,28 @@ public class UI : MonoBehaviour
         alpha.alpha = 0;
         active = 0;
         //player
-        player = GameObject.Find("Player");
-        script = player.GetComponent<player>();
-        //calculator
-        calculator = transform.GetChild(0).gameObject;
-        calcInput = calculator.transform.GetChild(0).gameObject;
+        playerObject = GameObject.Find("Player");
+        script = playerObject.GetComponent<player>();
+        //ammo
+        ammoDisplay = playerObject.transform.GetChild(1).GetChild(3).gameObject;
     }
 
     void Update()
     {
+        Ammo();
         Open();
         Tabs();
+    }
+
+    void Ammo()
+    {
+        ammoDisplay.GetComponent<TMP_Text>().text = player.bullets.ToString();
     }
 
     void Open()
     {
         //opening
-        if (Input.GetKeyDown("tab"))
+        if (Input.GetKeyDown(player.uiButton))
         {
             if (alpha.alpha == 0)
             {
