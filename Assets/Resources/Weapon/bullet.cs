@@ -2,26 +2,26 @@
 
 public class bullet : MonoBehaviour
 {
-    //values
-    public float initial;
-    public float gravity;
     //movement
     private Rigidbody rb;
+    public float initial;
+    public float terminal;
+    //acceleration
+    public float gravity;
+    public float wind;
+    //player
+    public Transform playerTransform;
+    private Transform cam;
     //collisions
     private Collider[] collisions;
+    public float hits;
     //destroy
     public float time;
-    //player
-    public Transform player;
-    private Transform cam;
-
-    private float startTime;
 
     void Start()
     {
-        startTime = Time.time;
         //player
-        cam = player.GetChild(0);
+        cam = playerTransform.GetChild(0);
         //movement
         rb = transform.GetComponent<Rigidbody>();
         rb.velocity = (cam.transform.forward * initial);
@@ -29,17 +29,29 @@ public class bullet : MonoBehaviour
 
     void FixedUpdate()
     {
-        Gravity();
+        Accelerations();
         Collisions();
         Destroy();
 
     }
 
-    void Gravity()
+    void Accelerations()
     {
-        rb.velocity += (transform.up * gravity) * Time.deltaTime;
-    }
+        //gravity
+        rb.velocity += (cam.transform.up * gravity) * Time.deltaTime;
 
+        if(rb.velocity.x <= -terminal)
+        {
+            //terminal velocity
+            rb.velocity = new Vector3(-terminal, rb.velocity.y, rb.velocity.z);
+        }
+        else
+        {
+            //wind
+            rb.velocity += (cam.transform.forward * wind) * Time.deltaTime;
+        }
+    }
+    
     void Collisions()
     {
         collisions = Physics.OverlapSphere(transform.position, 0.1f);
@@ -48,8 +60,12 @@ public class bullet : MonoBehaviour
         {
             if (i.name == "Target")
             {
-                Debug.Log("target");
+                player.multiHits -= 1;
                 Destroy(gameObject);
+                if (player.multiHits == 0)
+                {
+                    playerTransform.GetComponent<player>().Win();
+                }
             }
 
             if (i.name == "Ground" || transform.position.y <= 0)
@@ -67,7 +83,7 @@ public class bullet : MonoBehaviour
         //destroys bullet after time
         if (time >= 1000000)
         {
-            //Destroy(gameObject);
+            Destroy(gameObject);
         }
     }
 }

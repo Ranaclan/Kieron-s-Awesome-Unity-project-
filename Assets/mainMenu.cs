@@ -1,81 +1,116 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class mainMenu : MonoBehaviour
 {
-    private string word;
-    private int length;
-    private char[] consonant = new char[] { 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'z' };
-    private char[] vowel = new char[] { 'a', 'e', 'i', 'o', 'u', 'y' };
-    private int letterType;
-    private int consonants = 0;
-    private int vowels = 0;
+    //menu
+    private GameObject previous;
+    private int quitNum = 0;
 
-    void Update()
+    void Start()
     {
-        if (Input.GetKeyUp("space"))
-        {
-            Select();
-        }
+        Cursor.lockState = CursorLockMode.None;
+        previous = transform.GetChild(1).gameObject;
     }
 
-    void Select()
+    public void UpdatePrevious(GameObject newPrevious)
     {
-        //new word of length 3 to 10 letters
-        word = "";
-        length = Random.Range(3, 10);
-
-        //loop through letters
-        for (int i = 0; i < length; i++)
-        {
-            if (consonants < 2)
-            {
-                if (vowels < 3)
-                {
-                    //if either consonant or vowels are allowed, randomly select one
-                    letterType = Random.Range(0, 1);
-                    Add(letterType);
-                }
-                else
-                {
-                    //only consonant allowed
-                    Add(0);
-                }
-            }
-            else
-            {
-                //only vowel allowed
-                Add(1);
-            }
-        }
-
-        char[] characters = word.ToCharArray();
-        characters[0] = char.ToUpper(characters[0]);
-        word = new string(characters);
-        Debug.Log(word);
+        previous = newPrevious;
     }
 
-    void Add(int type)
+    public void ChangeMenu(GameObject newMenu)
     {
-        int position;
+        previous.SetActive(false);
+        newMenu.SetActive(true);
+    }
 
-        switch (type)
+    public void Quit()
+    {
+        switch(quitNum)
         {
             case 0:
-                //consonant
-                position = Random.Range(0, 19);
-                word += consonant[position];
-                consonants += 1;
-                vowels = 0;
+                quitNum = 1;
                 break;
             case 1:
-                //vowel
-                position = Random.Range(0, 5);
-                word += vowel[position];
-                vowels += 1;
-                consonants = 0;
+                Application.Quit();
                 break;
         }
+    }
+
+    public void LoadLevel()
+    {
+        Transform menu = transform.GetChild(3);
+        player.bullets = float.Parse(menu.GetChild(0).GetComponent<TMP_InputField>().text);
+        player.multiHits = float.Parse(menu.GetChild(1).GetComponent<TMP_InputField>().text);
+        SceneManager.LoadScene(1);
+    }
+
+    public void LoadTutorial(int tutorial)
+    {
+        SceneManager.LoadScene(tutorial);
+    }
+
+    public void CustomiseUI(int colourPointer)
+    {
+        Transform menu = transform.GetChild(6);
+        switch (colourPointer)
+        {
+            case 0:
+                player.xColour.r = float.Parse(menu.GetChild(0).GetComponent<TMP_InputField>().text);
+                break;
+            case 1:
+                player.xColour.g = float.Parse(menu.GetChild(1).GetComponent<TMP_InputField>().text);
+                break;
+            case 2:
+                player.xColour.b = float.Parse(menu.GetChild(2).GetComponent<TMP_InputField>().text);
+                break;
+            case 3:
+                player.yColour.r = float.Parse(menu.GetChild(3).GetComponent<TMP_InputField>().text);
+                break;
+            case 4:
+                player.yColour.g = float.Parse(menu.GetChild(4).GetComponent<TMP_InputField>().text);
+                break;
+            case 5:
+                player.yColour.b = float.Parse(menu.GetChild(5).GetComponent<TMP_InputField>().text);
+                break;
+            case 6:
+                player.xRGB = float.Parse(menu.GetChild(5).GetComponent<TMP_InputField>().text);
+                break;
+            case 7:
+                player.yRGB = float.Parse(menu.GetChild(5).GetComponent<TMP_InputField>().text);
+                break;
+        }
+    }
+
+    public void EditControls(int controlsPointer)
+    {
+        switch (controlsPointer)
+        {
+            case 0:
+                player.resetButton = setKey();
+                break;
+            case 1:
+                player.uiButton = setKey();
+                break;
+            case 2:
+                player.inspectButton = setKey();
+                break;
+        }
+    }
+
+    string setKey()
+    {
+        foreach (string key in System.Enum.GetValues(typeof(KeyCode)))
+        {
+            if (Input.GetKey(key))
+            {
+                return key;
+            }
+        }
+
+        return "m";
     }
 }
